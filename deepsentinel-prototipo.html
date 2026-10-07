@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DeepSentinel · Protótipo de fluxo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+
+  /* marketplace (fictional site) */
+  --mk-bg:#F3F5FA;
+  --mk-surface:#FFFFFF;
+  --mk-header:#2B44C9;
+  --mk-header-ink:#FFFFFF;
+  --mk-ink:#1C2033;
+  --mk-muted:#646B85;
+  --mk-line:#E1E5EF;
+  --mk-price:#1C2033;
+  --mk-star:#F2B320;
+
+  /* DeepSentinel (extension layer) */
+  --ds-surface:#023436;
+  --ds-surface-2:#08484A;
+  --ds-ink:#EAF7F5;
+  --ds-muted:#9CC7C2;
+  --ds-accent:#02C39A;
+  --ds-line:#1C5E5E;
+
+  --ok:#1FA37A;
+  --warn:#E09A1A;
+  --alert:#D9582B;
+  --info:#5AA9E6;
+
+  --font-mk:"Nunito Sans", Arial, Helvetica, sans-serif;
+  --font-ds:"IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --mk-bg:#12141C; --mk-surface:#1B1E29; --mk-header:#22369E; --mk-ink:#E8EAF2;
+    --mk-muted:#9AA0B8; --mk-line:#2A2F3F; --mk-price:#F1F3F9;
+  }
+}
+:root[data-theme="dark"]{
+  --mk-bg:#12141C; --mk-surface:#1B1E29; --mk-header:#22369E; --mk-ink:#E8EAF2;
+  --mk-muted:#9AA0B8; --mk-line:#2A2F3F; --mk-price:#F1F3F9;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--mk-bg);color:var(--mk-ink);font-family:var(--font-mk);min-height:100%}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--ds-accent);outline-offset:2px}
+
+/* ---------- demo bar (outside the "site") ---------- */
+.demo-bar{
+  display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;
+  padding:10px 20px;background:var(--ds-surface);color:var(--ds-ink);font-family:var(--font-ds);font-size:14px;
+}
+.demo-bar strong{font-weight:600}
+.demo-bar .hint{color:var(--ds-muted)}
+.demo-controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.switch{display:flex;align-items:center;gap:8px;color:var(--ds-ink)}
+.switch input{accent-color:var(--ds-accent);width:18px;height:18px}
+
+/* ---------- fictional marketplace ---------- */
+.mk-header{
+  background:var(--mk-header);color:var(--mk-header-ink);
+  display:flex;align-items:center;gap:20px;padding:14px 24px;flex-wrap:wrap;
+}
+.mk-logo{font-weight:800;font-size:22px;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.mk-logo span.dot{width:26px;height:26px;border-radius:8px;background:#FFFFFF;display:inline-grid;place-items:center;color:var(--mk-header);font-size:15px}
+.mk-search{flex:1;min-width:200px;max-width:560px;background:#FFFFFF;border-radius:8px;padding:10px 14px;color:#646B85;font-size:15px}
+.ext-pin{
+  margin-left:auto;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);
+  border-radius:999px;padding:6px 12px 6px 6px;font-family:var(--font-ds);font-size:13px;font-weight:600
+}
+.ext-pin .shield{width:24px;height:24px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;max-width:1360px;margin:0 auto;padding:24px}
+.crumb{color:var(--mk-muted);font-size:14px;margin:0 0 6px}
+.mk-title{font-size:26px;font-weight:800;margin:0 0 18px;letter-spacing:-.3px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.card{
+  position:relative;background:var(--mk-surface);border:1px solid var(--mk-line);border-radius:10px;
+  padding:14px;display:flex;flex-direction:column;gap:8px;text-align:left;color:inherit;
+  transition:border-color .15s, box-shadow .15s;
+}
+.card:hover,.card.active{border-color:var(--ds-accent);box-shadow:0 0 0 2px color-mix(in srgb, var(--ds-accent) 35%, transparent)}
+.thumb{height:150px;border-radius:8px;background:color-mix(in srgb, var(--mk-line) 60%, var(--mk-surface));display:grid;place-items:center}
+.card h3{font-size:15px;font-weight:700;line-height:1.3;margin:0;min-height:39px}
+.stars{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mk-muted)}
+.stars b{color:var(--mk-star);letter-spacing:1px;font-weight:700}
+.price{font-size:22px;font-weight:800;color:var(--mk-price)}
+.seller{font-size:13px;color:var(--mk-muted)}
+.free{font-size:13px;color:#1FA37A;font-weight:700}
+
+/* DeepSentinel badge injected on the card */
+.ds-badge{
+  position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:6px;
+  font-family:var(--font-ds);font-size:12px;font-weight:600;color:#FFFFFF;
+  padding:5px 9px 5px 6px;border-radius:999px;background:var(--ds-surface);
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+.ds-badge .lamp{width:10px;height:10px;border-radius:50%}
+.ds-badge.loading .lamp{background:var(--ds-muted);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+/* ---------- extension panel ---------- */
+.panel{
+  position:sticky;top:16px;align-self:start;background:var(--ds-surface);color:var(--ds-ink);
+  font-family:var(--font-ds);border-radius:14px;overflow:hidden;
+  box-shadow:0 10px 30px rgba(2,52,54,.35);max-height:calc(100vh - 32px);display:flex;flex-direction:column
+}
+.panel-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--ds-line)}
+.panel-head .shield{width:30px;height:30px}
+.panel-head h2{font-size:17px;margin:0;font-weight:700}
+.panel-head p{margin:0;font-size:12px;color:var(--ds-muted)}
+.panel-body{padding:18px;overflow:auto}
+
+.empty{color:var(--ds-muted);font-size:14px;line-height:1.55}
+.empty svg{display:block;margin:6px 0 14px}
+
+.steps{list-style:none;margin:0 0 4px;padding:0;display:flex;flex-direction:column;gap:2px}
+.step{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:8px 0;color:var(--ds-muted);font-size:14px}
+.step .n{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ds-line);display:grid;place-items:center;font-size:12px;font-weight:600}
+.step.run{color:var(--ds-ink)}
+.step.run .n{border-color:var(--ds-accent);color:var(--ds-accent);animation:pulse 1s infinite}
+.step.done{color:var(--ds-ink)}
+.step.done .n{background:var(--ds-accent);border-color:var(--ds-accent);color:var(--ds-surface)}
+.step small{display:block;color:var(--ds-muted);font-size:12px;margin-top:2px;min-height:15px}
+
+.verdict{border-radius:10px;padding:14px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start}
+.verdict .ico{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#FFFFFF;font-weight:700;font-size:18px}
+.verdict h3{margin:0 0 3px;font-size:17px}
+.verdict p{margin:0;font-size:13px;line-height:1.45;color:var(--ds-ink);opacity:.9}
+.v-ok{background:color-mix(in srgb, var(--ok) 22%, var(--ds-surface))} .v-ok .ico{background:var(--ok)}
+.v-warn{background:color-mix(in srgb, var(--warn) 24%, var(--ds-surface))} .v-warn .ico{background:var(--warn)}
+.v-alert{background:color-mix(in srgb, var(--alert) 28%, var(--ds-surface))} .v-alert .ico{background:var(--alert)}
+
+.section-t{font-size:13px;color:var(--ds-muted);margin:16px 0 8px;font-weight:600}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.check{background:var(--ds-surface-2);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:12px 1fr;gap:10px;align-items:start}
+.check .lamp{width:10px;height:10px;border-radius:50%;margin-top:5px}
+.check b{display:block;font-size:14px;font-weight:600}
+.check span{display:block;font-size:12.5px;color:var(--ds-muted);line-height:1.45;margin-top:2px}
+.lamp.ok{background:var(--ok)} .lamp.warn{background:var(--warn)} .lamp.alert{background:var(--alert)} .lamp.info{background:var(--info)}
+
+.compare{width:100%;border-collapse:collapse;font-size:12.5px}
+.compare-wrap{overflow-x:auto;background:var(--ds-surface-2);border-radius:8px}
+.compare th,.compare td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--ds-line);vertical-align:top}
+.compare th{color:var(--ds-muted);font-weight:600}
+.compare tr:last-child td{border-bottom:none}
+.compare .diff{color:#FFB38F;font-weight:600}
+
+.disclaimer{margin-top:16px;font-size:12px;color:var(--ds-muted);line-height:1.5;border-top:1px solid var(--ds-line);padding-top:12px}
+
+.site-foot{max-width:1360px;margin:0 auto;padding:0 24px 32px;color:var(--mk-muted);font-size:13px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .panel{position:relative;top:0;max-height:none}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<div class="demo-bar" role="region" aria-label="Controles da demonstração">
+  <div><strong>Protótipo DeepSentinel</strong> <span class="hint">Passe o mouse ou clique em um anúncio para ver a extensão em ação.</span></div>
+  <div class="demo-controls">
+    <label class="switch"><input type="checkbox" id="optSteps" checked> Mostrar etapas da análise</label>
+    <label class="switch"><input type="checkbox" id="optSlow"> Câmera lenta (para apresentar)</label>
+  </div>
+</div>
+
+<header class="mk-header">
+  <div class="mk-logo"><span class="dot">F</span>FeiraNet</div>
+  <div class="mk-search" aria-hidden="true">suplementos</div>
+  <div class="ext-pin" title="Extensão DeepSentinel ativa">
+    <svg class="shield" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#02C39A"/><path d="M12 5l5 2v4.5c0 3.2-2.1 5.9-5 6.9-2.9-1-5-3.7-5-6.9V7l5-2z" fill="#023436"/></svg>
+    DeepSentinel ativo
+  </div>
+</header>
+
+<main class="layout">
+  <section aria-labelledby="tituloLista">
+    <p class="crumb">Início / Saúde / Suplementos</p>
+    <h1 class="mk-title" id="tituloLista">Suplementos alimentares</h1>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <aside class="panel" aria-live="polite" aria-label="Painel da extensão DeepSentinel">
+    <div class="panel-head">
+      <svg class="shield" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#02C39A"/><path d="M12 5l5 2v4.5c0 3.2-2.1 5.9-5 6.9-2.9-1-5-3.7-5-6.9V7l5-2z" fill="#023436"/></svg>
+      <div>
+        <h2>DeepSentinel</h2>
+        <p>Evidências para você decidir antes de comprar</p>
+      </div>
+    </div>
+    <div class="panel-body" id="panel"></div>
+  </aside>
+</main>
+
+<p class="site-foot">Protótipo ilustrativo. O marketplace, os produtos, os vendedores e os registros exibidos são fictícios e servem apenas para demonstrar o funcionamento pretendido.</p>
+
+<script>
+// ---------- fictional data ----------
+const produtos = [
+  {
+    id:"p1", titulo:"Whey Protein Isolado VitaForte 900g Baunilha", preco:189.90, mediana:184.00,
+    nota:4.8, avaliacoes:3412, vendedor:"VitaForte Loja Oficial", lojaOficial:true, cor:"#E9D6B4", tampa:"#3B3B3B",
+    registro:{ encontrado:true, nome:"Whey Protein Isolado VitaForte", marca:"VitaForte", numero:"6.1234.0001.001-1", apresentacao:"900 g" },
+    anuncio:{ nome:"Whey Protein Isolado", marca:"VitaForte", apresentacao:"900 g" },
+    irregular:false, divergencias:[]
+  },
+  {
+    id:"p2", titulo:"Creatina Monohidratada NutriMax 300g Pura", preco:29.90, mediana:99.00,
+    nota:4.6, avaliacoes:987, vendedor:"SuplementosJá", lojaOficial:false, cor:"#F2F2F2", tampa:"#2B44C9",
+    registro:{ encontrado:true, nome:"Creatina Monohidratada NutriMax", marca:"NutriMax", numero:"6.4421.0007.002-3", apresentacao:"300 g" },
+    anuncio:{ nome:"Creatina Monohidratada", marca:"NutriMax", apresentacao:"300 g" },
+    irregular:false, divergencias:[]
+  },
+  {
+    id:"p3", titulo:"Termogênico SlimBurn Extreme 60 cápsulas Queima Rápida", preco:79.90, mediana:84.00,
+    nota:4.2, avaliacoes:516, vendedor:"MegaFit Store", lojaOficial:false, cor:"#E45A3B", tampa:"#1C1C1C",
+    registro:{ encontrado:true, nome:"SlimBurn Extreme", marca:"SlimBurn", numero:"6.9087.0012.001-0", apresentacao:"60 cápsulas" },
+    anuncio:{ nome:"Termogênico SlimBurn Extreme", marca:"SlimBurn", apresentacao:"60 cápsulas" },
+    irregular:true, divergencias:[]
+  },
+  {
+    id:"p4", titulo:"Ômega 3 OceanPure 1000mg 120 cápsulas", preco:69.90, mediana:72.00,
+    nota:4.7, avaliacoes:204, vendedor:"Casa Natural BR", lojaOficial:false, cor:"#BFE3F2", tampa:"#0F6E8C",
+    registro:{ encontrado:false },
+    anuncio:{ nome:"Ômega 3 1000mg", marca:"OceanPure", apresentacao:"120 cápsulas" },
+    irregular:false, divergencias:[]
+  },
+  {
+    id:"p5", titulo:"Multivitamínico VitaForte A-Z 1000mg 90 cápsulas", preco:54.90, mediana:58.00,
+    nota:4.5, avaliacoes:1290, vendedor:"Farmácia Express Online", lojaOficial:false, cor:"#F6C64A", tampa:"#3B3B3B",
+    registro:{ encontrado:true, nome:"Multivitamínico VitaForte A-Z", marca:"VitaForte", numero:"6.1234.0019.004-7", apresentacao:"60 cápsulas de 500 mg" },
+    anuncio:{ nome:"Multivitamínico A-Z", marca:"VitaForte", apresentacao:"90 cápsulas de 1000 mg" },
+    irregular:false, divergencias:["apresentacao"]
+  },
+  {
+    id:"p6", titulo:"Colágeno Hidrolisado BellaDerm 300g Sabor Limão", preco:64.90, mediana:66.00,
+    nota:4.9, avaliacoes:2045, vendedor:"BellaDerm Oficial", lojaOficial:true, cor:"#F7D7DE", tampa:"#B34A6A",
+    registro:{ encontrado:true, nome:"Colágeno Hidrolisado BellaDerm", marca:"BellaDerm", numero:"6.5532.0003.001-9", apresentacao:"300 g" },
+    anuncio:{ nome:"Colágeno Hidrolisado", marca:"BellaDerm", apresentacao:"300 g" },
+    irregular:false, divergencias:[]
+  }
+];
+
+const brl = v => v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+
+// simple product illustration (jar) drawn in SVG
+function pote(cor, tampa){
+  return `<svg width="86" height="110" viewBox="0 0 86 110" aria-hidden="true">
+    <rect x="18" y="4" width="50" height="18" rx="4" fill="${tampa}"/>
+    <rect x="10" y="20" width="66" height="86" rx="12" fill="${cor}" stroke="rgba(0,0,0,.15)"/>
+    <rect x="18" y="46" width="50" height="30" rx="4" fill="rgba(255,255,255,.75)"/>
+    <rect x="24" y="54" width="38" height="4" rx="2" fill="rgba(0,0,0,.35)"/>
+    <rect x="24" y="63" width="26" height="4" rx="2" fill="rgba(0,0,0,.2)"/>
+  </svg>`;
+}
+
+// ---------- render marketplace ----------
+const grid = document.getElementById("grid");
+grid.innerHTML = produtos.map(p => `
+  <button class="card" data-id="${p.id}" aria-label="Anúncio: ${p.titulo}, ${brl(p.preco)}">
+    <div class="thumb">${pote(p.cor, p.tampa)}</div>
+    <h3>${p.titulo}</h3>
+    <div class="stars"><b>★★★★★</b> ${p.nota.toFixed(1)} (${p.avaliacoes.toLocaleString("pt-BR")})</div>
+    <div class="price">${brl(p.preco)}</div>
+    <div class="free">Frete grátis</div>
+    <div class="seller">Vendido por ${p.vendedor}</div>
+  </button>`).join("");
+
+// ---------- analysis logic (what the extension would compute) ----------
+function avaliar(p){
+  const checks = [];
+
+  // 1. official record lookup
+  if(p.registro.encontrado){
+    checks.push({lamp:"ok", t:"Registro na ANVISA localizado", d:`Correspondência encontrada: ${p.registro.nome} (nº ${p.registro.numero}).`});
+  } else {
+    checks.push({lamp:"warn", t:"Não localizado no registro oficial", d:"Não encontramos um registro na ANVISA que corresponda a este anúncio. Isso não significa que o produto seja irregular, mas vale verificar."});
+  }
+
+  // 2. ad vs record divergence
+  if(p.registro.encontrado){
+    if(p.divergencias.length){
+      checks.push({lamp:"warn", t:"Anúncio diverge do registro", d:"A apresentação descrita no anúncio é diferente da que consta no registro oficial."});
+    } else {
+      checks.push({lamp:"ok", t:"Anúncio confere com o registro", d:"Nome, marca e apresentação batem com as informações oficiais."});
+    }
+  }
+
+  // 3. irregular list
+  if(p.irregular){
+    checks.push({lamp:"alert", t:"Consta em lista de irregulares", d:"Este produto aparece na lista pública de produtos irregulares divulgada pela ANVISA."});
+  } else {
+    checks.push({lamp:"ok", t:"Não consta em lista de irregulares", d:"Nenhuma ocorrência nas listas públicas consultadas."});
+  }
+
+  // 4. price (weak, auxiliary signal)
+  const razao = p.preco / p.mediana;
+  if(razao < 0.5){
+    checks.push({lamp:"warn", t:"Preço muito abaixo do habitual", d:`${brl(p.preco)} contra uma mediana de ${brl(p.mediana)} em anúncios do mesmo produto. Sinal auxiliar: preço baixo sozinho não indica problema.`});
+  } else {
+    checks.push({lamp:"ok", t:"Preço dentro do habitual", d:`Próximo da mediana de ${brl(p.mediana)} em anúncios do mesmo produto.`});
+  }
+
+  // 5. seller context (informative only)
+  checks.push({lamp:"info", t:p.lojaOficial ? "Vendido pela loja oficial da marca" : "Vendido por loja de terceiros", d:`${p.vendedor}. Informação de contexto, não entra no nível de atenção.`});
+
+  // overall level
+  let nivel = "ok";
+  if(checks.some(c => c.lamp === "warn")) nivel = "warn";
+  if(checks.some(c => c.lamp === "alert")) nivel = "alert";
+  return {checks, nivel};
+}
+
+const textosNivel = {
+  ok:   {cls:"v-ok",    ico:"✓", t:"Nenhum alerta encontrado", d:"As informações deste anúncio conferem com os dados oficiais consultados."},
+  warn: {cls:"v-warn",  ico:"!", t:"Vale a pena conferir",     d:"Encontramos pontos que merecem sua atenção antes da compra."},
+  alert:{cls:"v-alert", ico:"!", t:"Atenção antes de comprar", d:"Há evidência relevante nos dados oficiais sobre este produto."}
+};
+const corNivel = {ok:"var(--ok)", warn:"var(--warn)", alert:"var(--alert)"};
+const badgeNivel = {ok:"Sem alertas", warn:"Vale conferir", alert:"Atenção"};
+
+// ---------- panel rendering ----------
+const panel = document.getElementById("panel");
+function vazio(){
+  panel.innerHTML = `<div class="empty">
+    <svg width="54" height="54" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 8-6 1.5L10 19z" fill="none" stroke="#02C39A" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    Passe o mouse sobre um anúncio. A extensão lê o anúncio, cruza com o registro oficial da ANVISA e mostra aqui o que encontrou.
+    <br><br>Ela nunca afirma que um produto é falso: só apresenta evidências para você decidir.</div>`;
+}
+vazio();
+
+const etapas = [
+  {t:"Lendo o anúncio",               sub:p => `Marca: ${p.anuncio.marca} · Produto: ${p.anuncio.nome}`},
+  {t:"Consultando registro da ANVISA", sub:p => "Buscando produtos registrados da mesma marca"},
+  {t:"Comparando anúncio e registro",  sub:p => p.registro.encontrado ? `Melhor correspondência: ${p.registro.nome}` : "Nenhuma correspondência suficiente"},
+  {t:"Verificando sinais",             sub:p => "Lista de irregulares, preço e apresentação"},
+  {t:"Montando o resultado",           sub:p => ""}
+];
+
+let execucao = 0; // invalidates older runs when user moves to another card
+const espera = ms => new Promise(r => setTimeout(r, ms));
+
+async function analisar(p, card){
+  const minha = ++execucao;
+  document.querySelectorAll(".card").forEach(c => c.classList.toggle("active", c === card));
+  document.querySelectorAll(".ds-badge").forEach(b => b.remove());
+
+  const badge = document.createElement("div");
+  badge.className = "ds-badge loading";
+  badge.innerHTML = `<span class="lamp"></span>Analisando`;
+  card.appendChild(badge);
+
+  const mostrarEtapas = document.getElementById("optSteps").checked;
+  const passo = document.getElementById("optSlow").checked ? 1100 : 420;
+
+  if(mostrarEtapas){
+    panel.innerHTML = `<p class="section-t" style="margin-top:0">Analisando: ${p.titulo}</p>
+      <ol class="steps">${etapas.map((e,i)=>`<li class="step" id="st${i}"><span class="n">${i+1}</span><div>${e.t}<small></small></div></li>`).join("")}</ol>`;
+    for(let i=0;i<etapas.length;i++){
+      if(minha !== execucao) return;
+      const el = document.getElementById("st"+i);
+      el.classList.add("run");
+      await espera(passo);
+      if(minha !== execucao) return;
+      el.classList.remove("run"); el.classList.add("done");
+      el.querySelector("small").textContent = etapas[i].sub(p);
+    }
+    await espera(passo/2);
+  } else {
+    await espera(250);
+  }
+  if(minha !== execucao) return;
+
+  const {checks, nivel} = avaliar(p);
+  const v = textosNivel[nivel];
+
+  badge.className = "ds-badge";
+  badge.innerHTML = `<span class="lamp" style="background:${corNivel[nivel]}"></span>${badgeNivel[nivel]}`;
+
+  const r = p.registro;
+  const linha = (rot, a, b, diff) => `<tr><th scope="row">${rot}</th><td>${a}</td><td class="${diff?'diff':''}">${b}</td></tr>`;
+  const tabela = r.encontrado ? `
+    <p class="section-t">O que comparamos</p>
+    <div class="compare-wrap"><table class="compare">
+      <thead><tr><th></th><th>Anúncio</th><th>Registro oficial</th></tr></thead>
+      <tbody>
+        ${linha("Marca", p.anuncio.marca, r.marca, false)}
+        ${linha("Produto", p.anuncio.nome, r.nome, false)}
+        ${linha("Apresentação", p.anuncio.apresentacao, r.apresentacao, p.divergencias.includes("apresentacao"))}
+      </tbody></table></div>` : "";
+
+  panel.innerHTML = `
+    <div class="verdict ${v.cls}"><div class="ico" aria-hidden="true">${v.ico}</div>
+      <div><h3>${v.t}</h3><p>${v.d}</p></div></div>
+    <p class="section-t" style="margin-top:0">Evidências encontradas</p>
+    <ul class="checks">${checks.map(c=>`<li class="check"><span class="lamp ${c.lamp}"></span><div><b>${c.t}</b><span>${c.d}</span></div></li>`).join("")}</ul>
+    ${tabela}
+    <p class="disclaimer">O DeepSentinel não afirma que um produto é falso ou seguro. Ele mostra o que os dados oficiais dizem sobre este anúncio para você decidir. Dados desta demonstração são fictícios.</p>`;
+}
+
+// ---------- interactions: hover (with small delay), click and keyboard focus ----------
+let timer = null, atual = null;
+grid.querySelectorAll(".card").forEach(card => {
+  const p = produtos.find(x => x.id === card.dataset.id);
+  const disparar = () => { if(atual === card) return; atual = card; analisar(p, card); };
+  card.addEventListener("mouseenter", () => { clearTimeout(timer); timer = setTimeout(disparar, 350); });
+  card.addEventListener("mouseleave", () => clearTimeout(timer));
+  card.addEventListener("click", () => { clearTimeout(timer); atual = null; disparar(); });
+  card.addEventListener("focus", () => { clearTimeout(timer); disparar(); });
+});
+</script>
+</body>
+</html>
